@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sajilo Khata Pro</title>
+    <style>
+        :root { --p: #2563eb; --bg: #f1f5f9; --txt: #0f172a; --err: #dc2626; --ok: #16a34a; --brd: #cbd5e1; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--txt); margin: 0; padding-bottom: 20px; }
+        header { background: var(--p); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 1.2rem; }
+        
+        /* Nav Grid */
+        .nav { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; position: sticky; top: 0; background: var(--bg); z-index: 10; }
+        .n-btn { background: white; border: 1px solid var(--brd); padding: 10px 2px; border-radius: 8px; font-size: 0.7rem; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .n-btn.active { background: var(--p); color: white; border-color: var(--p); }
+
+        .sec { display: none; padding: 15px; }
+        .sec.active { display: block; }
+
+        /* UI Cards */
+        .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); margin-bottom: 12px; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--brd); border-radius: 8px; font-size: 1rem; }
+        .btn { width: 100%; padding: 14px; background: var(--p); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; }
+        .btn-del { background: #fee2e2; color: var(--err); border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; }
+        
+        /* List & Table */
+        .row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; background: white; }
+        th, td { padding: 10px 5px; text-align: left; border-bottom: 1px solid #eee; }
+        
+        .badge { padding: 3px 7px; border-radius: 5px; font-weight: bold; font-size: 0.7rem; }
+        .red { background: #fee2e2; color: var(--err); }
+        .green { background: #dcfce7; color: var(--ok); }
+
+        /* Modal */
+        #modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 100; display: none; overflow-y: auto; padding: 15px; }
+    </style>
+</head>
+<body>
+
+<header>Sajilo Khata Pro</header>
+
+<div class="nav">
+    <button class="n-btn active" onclick="sh('dash',this)">📊<br>Dash</button>
+    <button class="n-btn" onclick="sh('add-c',this)">➕👤<br>Add Cust</button>
+    <button class="n-btn" onclick="sh('list-c',this)">👥<br>Khata</button>
+    <button class="n-btn" onclick="sh('prod',this)">📦<br>Items</button>
+    <button class="n-btn" onclick="sh('sale',this)">💰<br>Sale</button>
+    <button class="n-btn" onclick="sh('history',this)">📜<br>History</button>
+</div>
+
+<div id="dash" class="sec active">
+    <div class="card" style="border-left: 5px solid var(--err)">
+        <small>Total Outstanding (उधारो उठाउन बाँकी)</small>
+        <h2 id="d-total-credit" style="color:var(--err); margin:5px 0;">Rs 0</h2>
+    </div>
+    <div class="card" style="border-left: 5px solid var(--ok)">
+        <small>Today's Cash (आज आएको नगद)</small>
+        <h2 id="d-today-cash" style="color:var(--ok); margin:5px 0;">Rs 0</h2>
+    </div>
+    <button class="btn" style="background:#64748b;" onclick="backupData()">📥 Download Backup (डाटा सेभ गर्नुहोस)</button>
+</div>
+
+<div id="add-c" class="sec">
+    <div class="card">
+        <h3>नयाँ ग्राहक थप्नुहोस्</h3>
+        <input type="text" id="cn" placeholder="Customer Name">
+        <input type="number" id="cp" placeholder="Phone Number">
+        <button class="btn" onclick="addC()">Save Customer</button>
+    </div>
+</div>
+
+<div id="list-c" class="sec">
+    <input type="text" id="cs" placeholder="🔍 Search Customer..." onkeyup="renderC()" style="margin-bottom:10px">
+    <div id="c-list"></div>
+</div>
+
+<div id="prod" class="sec">
+    <div class="card">
+        <h3>Add Product</h3>
+        <input type="text" id="pn" placeholder="Item Name">
+        <input type="number" id="pp" placeholder="Price">
+        <button class="btn" onclick="addP()">Save Product</button>
+    </div>
+    <div id="p-list"></div>
+</div>
+
+<div id="sale" class="sec">
+    <div class="card">
+        <h3>New Entry</h3>
+        <label>Customer</label>
+        <select id="sc"></select>
+        <label>Item (Optional)</label>
+        <select id="sp" onchange="up()"></select>
+        <label>Bill Amount (कुल बिल)</label>
+        <input type="number" id="sa" placeholder="0">
+        <label>Paid Today (आज बुझाएको)</label>
+        <input type="number" id="sr" value="0">
+        <button class="btn" onclick="saveS()">Save Entry</button>
+    </div>
+</div>
+
+<div id="history" class="sec">
+    <h3>Transaction History</h3>
+    <div style="overflow-x:auto">
+        <table id="h-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Name</th>
+                    <th>Bill</th>
+                    <th>Paid</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="h-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="modal">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <button onclick="document.getElementById('modal').style.display='none'" style="padding:10px;">← Back</button>
+        <button id="wa-btn" style="background:#25d366; color:white; border:none; padding:8px; border-radius:5px;">WhatsApp Share</button>
+    </div>
+    <h2 id="det-name" style="margin-bottom:5px;"></h2>
+    <div id="det-summary" class="badge red" style="display:inline-block; margin-bottom:15px;"></div>
+    <div id="det-list"></div>
+</div>
+
+<script>
+    let db = {
+        cust: JSON.parse(localStorage.getItem('sk_cust')) || [],
+        prod: JSON.parse(localStorage.getItem('sk_prod')) || [],
+        sales: JSON.parse(localStorage.getItem('sk_sales')) || []
+    };
+
+    function sv() {
+        localStorage.setItem('sk_cust', JSON.stringify(db.cust));
+        localStorage.setItem('sk_prod', JSON.stringify(db.prod));
+        localStorage.setItem('sk_sales', JSON.stringify(db.sales));
+        updateD();
+    }
+
+    function sh(id, b) {
+        document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.n-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        b.classList.add('active');
+        if(id === 'list-c') renderC();
+        if(id === 'sale') loadDr();
+        if(id === 'history') renderH();
+        if(id === 'prod') renderP();
+        if(id === 'dash') updateD();
+    }
+
+    // Customer Logic
+    function addC() {
+        let n = document.getElementById('cn').value.trim();
+        let p = document.getElementById('cp').value.trim();
+        if(!n) return alert("नाम खाली नछोड्नुहोस्");
+        db.cust.push({ id: Date.now(), n, p });
+        sv();
+        alert("ग्राहक सेभ भयो!");
+        sh('list-c', document.querySelectorAll('.n-btn')[2]);
+    }
+
+    function renderC() {
+        let list = document.getElementById('c-list');
+        let s = document.getElementById('cs').value.toLowerCase();
+        list.innerHTML = '';
+        db.cust.filter(x => x.n.toLowerCase().includes(s)).forEach(x => {
+            let bal = getBal(x.id);
+            list.innerHTML += `
+                <div class="card row" onclick="showDet(${x.id}, '${x.n}', '${x.p}')">
+                    <div><b>${x.n}</b><br><small>${x.p}</small></div>
+                    <div style="text-align:right">
+                        <span class="badge ${bal > 0 ? 'red' : 'green'}">Rs ${bal}</span>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function getBal(cid) {
+        return db.sales.filter(s => s.cid == cid).reduce((a, b) => a + (Number(b.sa) - Number(b.sr)), 0);
+    }
+
+    // Modal Details
+    function showDet(cid, name, phone) {
+        let dv = document.getElementById('modal');
+        dv.style.display = 'block';
+        document.getElementById('det-name').innerText = name;
+        let bal = getBal(cid);
+        document.getElementById('det-summary').innerText = "Total Balance: Rs " + bal;
+        
+        let filtered = db.sales.filter(s => s.cid == cid);
+        document.getElementById('det-list').innerHTML = `<table><tr><th>Date</th><th>Item</th><th>Bill</th><th>Paid</th></tr>` + 
+            filtered.map(s => `<tr><td>${s.dt}</td><td>${s.pn}</td><td>${s.sa}</td><td>${s.sr}</td></tr>`).join('') + `</table>`;
+        
+        document.getElementById('wa-btn').onclick = () => {
+            let msg = `नमस्ते ${name}, तपाइको हाम्रो पसलमा कुल बाँकी हिसाब रु. ${bal} रहेको छ। धन्यवाद!`;
+            window.open(`https://wa.me/977${phone}?text=${encodeURIComponent(msg)}`);
+        };
+    }
+
+    // Sale Logic
+    function loadDr() {
+        document.getElementById('sc').innerHTML = db.cust.map(c => `<option value="${c.id}">${c.n}</option>`).join('');
+        document.getElementById('sp').innerHTML = '<option value="">-- select item --</option>' + db.prod.map(p => `<option value="${p.id}">${p.n}</option>`).join('');
+    }
+    function up() {
+        let p = db.prod.find(x => x.id == document.getElementById('sp').value);
+        if(p) document.getElementById('sa').value = p.pp;
+    }
+    function saveS() {
+        let cid = document.getElementById('sc').value, sa = document.getElementById('sa').value || 0, sr = document.getElementById('sr').value || 0;
+        if(!cid) return alert("ग्राहक छान्नुहोस्");
+        let c = db.cust.find(x => x.id == cid), p = db.prod.find(x => x.id == document.getElementById('sp').value);
+        db.sales.push({ id: Date.now(), dt: new Date().toLocaleDateString(), cid, cName: c.n, pn: p ? p.n : 'Direct', sa, sr });
+        sv();
+        alert("Entry Saved!");
+        sh('dash', document.querySelector('.n-btn'));
+    }
+
+    function renderH() {
+        document.getElementById('h-body').innerHTML = db.sales.slice().reverse().map(s => `
+            <tr>
+                <td>${s.dt}</td>
+                <td>${s.cName}</td>
+                <td>${s.sa}</td>
+                <td>${s.sr}</td>
+                <td><button class="btn-del" onclick="delS(${s.id})">Del</button></td>
+            </tr>
+        `).join('');
+    }
+
+    function delS(id) {
+        if(confirm("यो हिसाब हटाउने हो?")) {
+            db.sales = db.sales.filter(s => s.id !== id);
+            sv(); renderH();
+        }
+    }
+
+    function addP() {
+        let n = document.getElementById('pn').value, p = document.getElementById('pp').value;
+        if(n && p) { db.prod.push({ id: Date.now(), n, pp: p }); sv(); renderP(); }
+    }
+    function renderP() {
+        document.getElementById('p-list').innerHTML = db.prod.map(p => `<div class="card row">${p.n} <b>Rs ${p.pp}</b></div>`).join('');
+    }
+
+    function updateD() {
+        let cred = 0, cash = 0, td = new Date().toLocaleDateString();
+        db.cust.forEach(c => cred += getBal(c.id));
+        db.sales.filter(s => s.dt === td).forEach(s => cash += Number(s.sr));
+        document.getElementById('d-total-credit').innerText = `Rs ${cred}`;
+        document.getElementById('d-today-cash').innerText = `Rs ${cash}`;
+    }
+
+    function backupData() {
+        let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+        let dlAnchorElem = document.createElement('a');
+        dlAnchorElem.setAttribute("href", dataStr);
+        dlAnchorElem.setAttribute("download", "khata_backup_" + new Date().toLocaleDateString() + ".json");
+        dlAnchorElem.click();
+    }
+
+    updateD();
+</script>
+</body>
+</html>
